@@ -1,12 +1,12 @@
 const inquirer = require("inquirer");
 const mysql = require("mysql2");
 
-// const db = mysql.createConnection({
-//   host: "127.0.0.1",
-//   user: "root",
-//   password: "password",
-//   database: "employees_db",
-// });
+const db = mysql.createConnection({
+  host: "127.0.0.1",
+  user: "root",
+  password: "password",
+  database: "employees_db",
+});
 function promptQuestions() {
   inquirer
     .prompt({
@@ -26,11 +26,25 @@ function promptQuestions() {
     })
     .then(function (data) {
       if (data.intro == "View all departments") {
-        //   db.query();
-        promptQuestions();
+        db.query(`SELECT * FROM department`, (err, result) => {
+          if (err) {
+            console.log(err);
+          }
+          console.table(result);
+          promptQuestions();
+        });
       } else if (data.intro == "View all roles") {
-        //   db.query();
-        promptQuestions();
+        db.query(
+          `SELECT role.id AS id, title, salary, name FROM role JOIN department ON role.department_id = department.id`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            // const transformed = result.reduce((dep, {id, ...x}) => {dep[id] = x; return dep}, {})
+            console.table(result);
+            promptQuestions();
+          }
+        );
       } else if (data.intro == "View all employees") {
         //   db.query();
         promptQuestions();
