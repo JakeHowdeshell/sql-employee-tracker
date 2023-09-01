@@ -35,19 +35,40 @@ function promptQuestions() {
         });
       } else if (data.intro == "View all roles") {
         db.query(
-          `SELECT role.id AS id, title, salary, name FROM role JOIN department ON role.department_id = department.id`,
+          `SELECT role.id AS id, title, salary, department.name AS department FROM role JOIN department ON role.department_id = department.id`,
           (err, result) => {
             if (err) {
               console.log(err);
             }
-            // const transformed = result.reduce((dep, {id, ...x}) => {dep[id] = x; return dep}, {})
             console.table(result);
             promptQuestions();
           }
         );
       } else if (data.intro == "View all employees") {
-        //   db.query();
-        promptQuestions();
+        db.query(
+          `SELECT 
+          employee.id AS id, 
+          employee.first_name AS first_name, 
+          employee.last_name AS last_name, 
+          role.title AS title,
+          department.name AS department,
+          role.salary AS salary,
+          CONCAT(manager.first_name,' ',manager.last_name) AS manager
+          FROM employee 
+          JOIN role 
+          ON employee.role_id = role.id 
+          JOIN department 
+          ON role.department_id = department.id
+          LEFT JOIN employee manager
+          ON employee.manager_id = manager.id`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            console.table(result);
+            promptQuestions();
+          }
+        );
       } else if (data.intro == "Add a department") {
         inquirer
           .prompt({
@@ -56,38 +77,63 @@ function promptQuestions() {
             name: "newDep",
           })
           .then(function (depName) {
-            console.log(depName.newDep);
-            // db.query();
+            const newDep = depName.newDep;
+            db.query(
+              `INSERT INTO department (name) VALUES ('${newDep}')`,
+              (err, result) => {
+                if (err) {
+                  console.log(err);
+                }
+                console.log(`Added ${newDep} to the database.`);
+                promptQuestions();
+              }
+            );
           });
-        promptQuestions();
       } else if (data.intro == "Add a role") {
-        inquirer
-          .prompt([
-            {
-              type: "input",
-              message: "What is the name of the role?",
-              name: "newRole",
-            },
-            {
-              type: "input",
-              message: "What is the salary of the role?",
-              name: "roleSal",
-            },
-            {
-              type: "list",
-              message: "Which department does your role belong to?",
-              // need to figure out how to automaticlly update choices
-              choices: [],
-              name: "roleDep",
-            },
-          ])
-          .then(function (role) {
-            console.log(role.newRole);
-            console.log(role.roleSal);
-            console.log(role.roleDep);
-            //db.query()
-            promptQuestions();
-          });
+        db.query(`SELECT * FROM department`, (err, result) => {
+          if (err) {
+            console.log(err);
+          }
+          const departmentChoices = result.map((department) => ({
+            name: department.name,
+            value: department.id,
+          }));
+          console.log(departmentChoices);
+          inquirer
+            .prompt([
+              {
+                type: "input",
+                message: "What is the name of the role?",
+                name: "newRole",
+              },
+              {
+                type: "input",
+                message: "What is the salary of the role?",
+                name: "roleSal",
+              },
+              {
+                type: "list",
+                message: "Which department does your role belong to?",
+                choices: departmentChoices,
+                name: "roleDep",
+              },
+            ])
+            .then(function (role) {
+              const title = role.newRole;
+              const salary = role.roleSal;
+              const departmentId = role.roleDep;
+              db.query(
+                `INSERT INTO role (title, salary, department_id) VALUES ('${title}', '${salary}', '${departmentId}')`,
+                (err, result) => {
+                  if (err) {
+                    console.log(err);
+                  }
+                  console.log(`Added ${title} to the database.`);
+                  promptQuestions();
+                }
+              );
+            });
+        });
       } else if (data.intro == "Add an employee") {
         inquirer
           .prompt([
