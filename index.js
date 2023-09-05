@@ -1,12 +1,14 @@
+// imported dependents
 const inquirer = require("inquirer");
 const mysql = require("mysql2");
-
+// connection between code and mysql
 const db = mysql.createConnection({
   host: "127.0.0.1",
   user: "root",
   password: "password",
   database: "employees_db",
 });
+// function using inquirer to prompt a user to add infromation to a database in mysql
 function promptQuestions() {
   inquirer
     .prompt({
@@ -20,6 +22,10 @@ function promptQuestions() {
         "Add a role",
         "Add an employee",
         "Update an employee role",
+        "Update an employee's manager",
+        //"View employees by manager",
+        //"View employees by department",
+        //""
       ],
       loop: true,
       name: "intro",
@@ -109,6 +115,12 @@ function promptQuestions() {
                 type: "input",
                 message: "What is the salary of the role?",
                 name: "roleSal",
+                validate: function (input) {
+                  if (isNaN(input)) {
+                    return "Please enter a number for salary";
+                  }
+                  return true;
+                },
               },
               {
                 type: "list",
@@ -210,28 +222,71 @@ function promptQuestions() {
           }
         );
       } else if (data.intro == "Update an employee role") {
-        inquirer
-          .prompt([
-            {
-              type: "list",
-              message: "Which employee's role do you want to update?",
-              // need to figure out how to automaticlly update choices
-              choices: [],
-              name: "employee",
-            },
-            {
-              type: "list",
-              message:
-                "Which role do you want to assign the selected employee?",
-              // need to figure out how to automaticlly update choices
-              choices: [],
-              name: "role",
-            },
-          ])
-          .then(function (data) {
-            console.log(data);
-            //db.query()
-          });
+        db.query(
+          `SELECT 
+          employee.id AS id,
+          CONCAT(first_name, ' ', last_name) AS employee
+      FROM employee`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            const employeeChoices = result.map((employee) => ({
+              name: employee.employee,
+              value: employee.id,
+            }));
+            db.query(
+              `SELECT 
+                role.id AS role_id, 
+                role.title AS title 
+                FROM role`,
+              (err, result) => {
+                if (err) {
+                  console.log(err);
+                }
+                const employeeRole = result.map((role) => ({
+                  name: role.title,
+                  value: role.role_id,
+                }));
+                inquirer
+                  .prompt([
+                    {
+                      type: "list",
+                      message: "Which employee's role do you want to update?",
+                      choices: employeeChoices,
+                      name: "employee",
+                    },
+                    {
+                      type: "list",
+                      message:
+                        "Which role do you want to assign the selected employee?",
+                      choices: employeeRole,
+                      name: "role",
+                    },
+                  ])
+                  .then(function (data) {
+                    console.log(data);
+                    const employee = data.employee;
+                    const role = data.role;
+
+                    db.query(
+                      `UPDATE employee
+                      SET role_id = '${role}'
+                      WHERE id = ${employee}`,
+                      (err, result) => {
+                        if (err) {
+                          console.log(err);
+                        }
+                        console.log(`Updated employees role.`);
+                        promptQuestions();
+                      }
+                    );
+                  });
+              }
+            );
+          }
+        );
+      } else if (data.intro == "Update an employee's manager") {
       }
     });
 }
