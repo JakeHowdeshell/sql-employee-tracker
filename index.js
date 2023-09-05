@@ -98,7 +98,6 @@ function promptQuestions() {
             name: department.name,
             value: department.id,
           }));
-          console.log(departmentChoices);
           inquirer
             .prompt([
               {
@@ -135,37 +134,81 @@ function promptQuestions() {
             });
         });
       } else if (data.intro == "Add an employee") {
-        inquirer
-          .prompt([
-            {
-              type: "input",
-              message: "What is the employee's first name?",
-              name: "firstName",
-            },
-            {
-              type: "input",
-              message: "What is the employee's last name?",
-              name: "lastName",
-            },
-            {
-              type: "list",
-              message: "What is the employee's role?",
-              // need to figure out how to automaticlly update choices
-              choices: [],
-              name: "role",
-            },
-            {
-              type: "list",
-              message: "Who is the employee's manager?",
-              // need to figure out how to automaticlly update choices
-              choices: [],
-              name: "manager",
-            },
-          ])
-          .then(function (employee) {
-            console.log(employee);
-            //db.query()
-          });
+        db.query(
+          `SELECT 
+        role.id AS role_id, 
+        role.title AS title 
+        FROM role`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            const roleChoices = result.map((role) => ({
+              name: role.title,
+              value: role.role_id,
+            }));
+            db.query(
+              `SELECT 
+            employee.id AS manager_id,
+            CONCAT(first_name, ' ', last_name) AS manager
+        FROM employee`,
+              (err, result) => {
+                if (err) {
+                  console.log(err);
+                }
+                const managerChoices = result.map((employee) => ({
+                  name: employee.manager,
+                  value: employee.manager_id,
+                }));
+                managerChoices.unshift({ name: "None", value: null });
+                inquirer
+                  .prompt([
+                    {
+                      type: "input",
+                      message: "What is the employee's first name?",
+                      name: "firstName",
+                    },
+                    {
+                      type: "input",
+                      message: "What is the employee's last name?",
+                      name: "lastName",
+                    },
+                    {
+                      type: "list",
+                      message: "What is the employee's role?",
+                      choices: roleChoices,
+                      name: "role",
+                    },
+                    {
+                      type: "list",
+                      message: "Who is the employee's manager?",
+                      choices: managerChoices,
+                      name: "manager",
+                    },
+                  ])
+                  .then(function (employee) {
+                    console.log(employee);
+                    const firstName = employee.firstName;
+                    const lastName = employee.lastName;
+                    const roleId = employee.role;
+                    const managerId = employee.manager;
+                    db.query(
+                      `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ('${firstName}', '${lastName}', '${roleId}', ${managerId})`,
+                      (err, result) => {
+                        if (err) {
+                          console.log(err);
+                        }
+                        console.log(
+                          `Added ${firstName} ${lastName} to the database.`
+                        );
+                        promptQuestions();
+                      }
+                    );
+                  });
+              }
+            );
+          }
+        );
       } else if (data.intro == "Update an employee role") {
         inquirer
           .prompt([
