@@ -23,15 +23,17 @@ function promptQuestions() {
         "Add an employee",
         "Update an employee role",
         "Update an employee's manager",
-        //"View employees by manager",
-        //"View employees by department",
-        //""
+        "View employees by manager",
+        "View employees by department",
+        "Delete a department",
+        "Delete a role",
+        "Delete an employee",
       ],
       loop: true,
       name: "intro",
     })
     .then(function (data) {
-        // if statement for viewing all departments
+      // if statement for viewing all departments
       if (data.intro == "View all departments") {
         db.query(`SELECT * FROM department`, (err, result) => {
           if (err) {
@@ -43,7 +45,13 @@ function promptQuestions() {
         // if statement for viewing all roles
       } else if (data.intro == "View all roles") {
         db.query(
-          `SELECT role.id AS id, title, salary, department.name AS department FROM role JOIN department ON role.department_id = department.id`,
+          `SELECT role.id AS id, 
+          title, 
+          salary, 
+          department.name AS department 
+          FROM role 
+          JOIN department 
+          ON role.department_id = department.id`,
           (err, result) => {
             if (err) {
               console.log(err);
@@ -99,7 +107,7 @@ function promptQuestions() {
               }
             );
           });
-          // if statment for adding a new role
+        // if statment for adding a new role
       } else if (data.intro == "Add a role") {
         db.query(`SELECT * FROM department`, (err, result) => {
           if (err) {
@@ -355,6 +363,224 @@ function promptQuestions() {
                   });
               }
             );
+          }
+        );
+        // if statement for viewing existing employees by their manager
+      } else if (data.intro == "View employees by manager") {
+        db.query(
+          `SELECT 
+          employee.id AS manager_id, 
+          CONCAT(first_name, ' ', last_name) AS manager
+          FROM employee
+          WHERE manager_id IS NULL`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            const managerChoices = result.map((manager) => ({
+              name: manager.manager,
+              value: manager.manager_id,
+            }));
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  message: "Which manager's employee list do you want to view?",
+                  choices: managerChoices,
+                  name: "manager",
+                },
+              ])
+              .then(function (data) {
+                const manager = data.manager;
+                db.query(
+                  `SELECT 
+                  CONCAT(manager.first_name, ' ', manager.last_name) AS manager,
+                  CONCAT(employee.first_name, ' ', employee.last_name) AS employee's
+                FROM employee
+                LEFT JOIN employee manager
+                ON employee.manager_id = manager.id
+                WHERE employee.manager_id = ${manager}`,
+                  (err, result) => {
+                    if (err) {
+                      console.log(err);
+                    }
+                    console.table(result);
+                    promptQuestions();
+                  }
+                );
+              });
+          }
+        );
+        // if statement for viewing existing employees by their department
+      } else if (data.intro == "View employees by department") {
+        db.query(
+          `SELECT 
+            id,
+            name
+            FROM department`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            const departmentChoices = result.map((department) => ({
+              name: department.name,
+              value: department.id,
+            }));
+            console.log(result);
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  message:
+                    "Which department's employee list do you want to view?",
+                  choices: departmentChoices,
+                  name: "department",
+                },
+              ])
+              .then(function (data) {
+                const department = data.department;
+                db.query(
+                  `SELECT 
+                    department.name AS department,
+                    CONCAT(employee.first_name, ' ', employee.last_name) AS employee,
+                    role.title AS title
+                  FROM employee
+                    JOIN role
+                    ON employee.role_id = role.id 
+                    JOIN department 
+                    ON role.department_id = department.id
+                  WHERE department.id = ${department}`,
+                  (err, result) => {
+                    if (err) {
+                      console.log(err);
+                    }
+                    console.table(result);
+                    promptQuestions();
+                  }
+                );
+              });
+          }
+        );
+        // if statement for deleting a department
+      } else if (data.intro == "Delete a department") {
+        db.query(
+          `SELECT 
+            id,
+            name
+            FROM department`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            const departmentChoices = result.map((department) => ({
+              name: department.name,
+              value: department.id,
+            }));
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  message: "Which department would you like to delete?",
+                  choices: departmentChoices,
+                  name: "department",
+                },
+              ])
+              .then(function (data) {
+                const departmentId = data.department;
+                db.query(
+                  `DELETE FROM department
+                  WHERE department.id = ${departmentId}`,
+                  (err, result) => {
+                    if (err) {
+                      console.log(err);
+                    }
+                    console.log(`The department has been deleted`);
+                    promptQuestions();
+                  }
+                );
+              });
+          }
+        );
+        // if statement for deleting a role
+      } else if (data.intro == "Delete a role") {
+        db.query(
+          `SELECT 
+            id,
+            title
+            FROM role`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            const roleChoices = result.map((role) => ({
+              name: role.title,
+              value: role.id,
+            }));
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  message: "Which role would you like to delete?",
+                  choices: roleChoices,
+                  name: "role",
+                },
+              ])
+              .then(function (data) {
+                const roleId = data.role;
+                console.log(roleId);
+                db.query(
+                  `DELETE FROM role
+                  WHERE role.id = ${roleId}`,
+                  (err, result) => {
+                    if (err) {
+                      console.log(err);
+                    }
+                    console.log(`The role has been deleted`);
+                    promptQuestions();
+                  }
+                );
+              });
+          }
+        );
+        // if statement for deleting an employee
+      } else if (data.intro == "Delete an employee") {
+        db.query(
+          `SELECT 
+            id,
+            CONCAT(employee.first_name, ' ', employee.last_name) AS name
+            FROM employee`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            const employeeChoices = result.map((employee) => ({
+              name: employee.name,
+              value: employee.id,
+            }));
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  message: "Which employee would you like to delete?",
+                  choices: employeeChoices,
+                  name: "employee",
+                },
+              ])
+              .then(function (data) {
+                const employeeId = data.employee;
+                console.log(employeeId);
+                db.query(
+                  `DELETE FROM employee
+                  WHERE employee.id = ${employeeId}`,
+                  (err, result) => {
+                    if (err) {
+                      console.log(err);
+                    }
+                    console.log(`The employee has been deleted`);
+                    promptQuestions();
+                  }
+                );
+              });
           }
         );
       }
