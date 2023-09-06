@@ -31,6 +31,7 @@ function promptQuestions() {
       name: "intro",
     })
     .then(function (data) {
+        // if statement for viewing all departments
       if (data.intro == "View all departments") {
         db.query(`SELECT * FROM department`, (err, result) => {
           if (err) {
@@ -39,6 +40,7 @@ function promptQuestions() {
           console.table(result);
           promptQuestions();
         });
+        // if statement for viewing all roles
       } else if (data.intro == "View all roles") {
         db.query(
           `SELECT role.id AS id, title, salary, department.name AS department FROM role JOIN department ON role.department_id = department.id`,
@@ -50,6 +52,7 @@ function promptQuestions() {
             promptQuestions();
           }
         );
+        // if statement for viewing all employees
       } else if (data.intro == "View all employees") {
         db.query(
           `SELECT 
@@ -75,6 +78,7 @@ function promptQuestions() {
             promptQuestions();
           }
         );
+        // if statement for adding a new department
       } else if (data.intro == "Add a department") {
         inquirer
           .prompt({
@@ -95,6 +99,7 @@ function promptQuestions() {
               }
             );
           });
+          // if statment for adding a new role
       } else if (data.intro == "Add a role") {
         db.query(`SELECT * FROM department`, (err, result) => {
           if (err) {
@@ -145,6 +150,7 @@ function promptQuestions() {
               );
             });
         });
+        // if statement for adding a new employee
       } else if (data.intro == "Add an employee") {
         db.query(
           `SELECT 
@@ -199,7 +205,6 @@ function promptQuestions() {
                     },
                   ])
                   .then(function (employee) {
-                    console.log(employee);
                     const firstName = employee.firstName;
                     const lastName = employee.lastName;
                     const roleId = employee.role;
@@ -221,6 +226,7 @@ function promptQuestions() {
             );
           }
         );
+        // if statement for updating an existing employees role
       } else if (data.intro == "Update an employee role") {
         db.query(
           `SELECT 
@@ -265,7 +271,6 @@ function promptQuestions() {
                     },
                   ])
                   .then(function (data) {
-                    console.log(data);
                     const employee = data.employee;
                     const role = data.role;
 
@@ -286,7 +291,72 @@ function promptQuestions() {
             );
           }
         );
+        // if statement for updating an existing employees manager
       } else if (data.intro == "Update an employee's manager") {
+        db.query(
+          `SELECT 
+            employee.id AS id,
+            CONCAT(first_name, ' ', last_name) AS employee
+        FROM employee`,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            const employeeChoices = result.map((employee) => ({
+              name: employee.employee,
+              value: employee.id,
+            }));
+            db.query(
+              `SELECT 
+                  employee.id AS manager_id, 
+                  CONCAT(first_name, ' ', last_name) AS manager
+                  FROM employee`,
+              (err, result) => {
+                if (err) {
+                  console.log(err);
+                }
+                const managerChoices = result.map((manager) => ({
+                  name: manager.manager,
+                  value: manager.manager_id,
+                }));
+                inquirer
+                  .prompt([
+                    {
+                      type: "list",
+                      message:
+                        "Which employee's manager do you want to update?",
+                      choices: employeeChoices,
+                      name: "employee",
+                    },
+                    {
+                      type: "list",
+                      message:
+                        "Which manager do you want to assign the selected employee?",
+                      choices: managerChoices,
+                      name: "manager",
+                    },
+                  ])
+                  .then(function (data) {
+                    const employee = data.employee;
+                    const manager = data.manager;
+
+                    db.query(
+                      `UPDATE employee
+                      SET manager_id = '${manager}'
+                      WHERE id = ${employee}`,
+                      (err, result) => {
+                        if (err) {
+                          console.log(err);
+                        }
+                        console.log(`Updated employees manager.`);
+                        promptQuestions();
+                      }
+                    );
+                  });
+              }
+            );
+          }
+        );
       }
     });
 }
