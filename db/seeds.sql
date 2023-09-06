@@ -1,3 +1,4 @@
+-- filling tables with preset information -- 
 INSERT INTO department (name)
 VALUES ("Engineering"),
     ("Finance"),

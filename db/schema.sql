@@ -1,13 +1,14 @@
+-- setting up database and using it --
 DROP DATABASE IF EXISTS employees_db;
 CREATE DATABASE employees_db;
 USE employees_db;
-
+-- creating tables and linkin them by id --
 CREATE TABLE department (
     id INT AUTO_INCREMENT,
     name VARCHAR(30),
     PRIMARY KEY(id)
 );
--- check to make sure you want these to go to null --
+
 CREATE TABLE role (
 id INT AUTO_INCREMENT,
 title VARCHAR(30),
