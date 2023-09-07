@@ -395,7 +395,7 @@ function promptQuestions() {
                 db.query(
                   `SELECT 
                   CONCAT(manager.first_name, ' ', manager.last_name) AS manager,
-                  CONCAT(employee.first_name, ' ', employee.last_name) AS employee's
+                  CONCAT(employee.first_name, ' ', employee.last_name) AS employee
                 FROM employee
                 LEFT JOIN employee manager
                 ON employee.manager_id = manager.id
@@ -426,7 +426,6 @@ function promptQuestions() {
               name: department.name,
               value: department.id,
             }));
-            console.log(result);
             inquirer
               .prompt([
                 {
@@ -527,7 +526,6 @@ function promptQuestions() {
               ])
               .then(function (data) {
                 const roleId = data.role;
-                console.log(roleId);
                 db.query(
                   `DELETE FROM role
                   WHERE role.id = ${roleId}`,
@@ -568,7 +566,6 @@ function promptQuestions() {
               ])
               .then(function (data) {
                 const employeeId = data.employee;
-                console.log(employeeId);
                 db.query(
                   `DELETE FROM employee
                   WHERE employee.id = ${employeeId}`,
